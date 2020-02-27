@@ -80,7 +80,7 @@ fclose (file_state);
 printf("Student Count = %d\n",student_count);
 }
 
-int check_db_IN(char *Roll_No,char *Name, char *ID_Number, char *IN_Time, char *IN_SMS_sent, char *state)
+int check_db(char *Roll_No,char *Name, char *ID_Number, char *IN_Time, char *OUT_Time, char *state)
 {
 	sqlite3 *db;
 	char *err_msg = 0;
@@ -97,60 +97,15 @@ int check_db_IN(char *Roll_No,char *Name, char *ID_Number, char *IN_Time, char *
 
 	if(state == "init")
 	{
-		sprintf(sql, "create table if not exists Student_Details(%s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT);", "Roll_No", "Name", "ID_Number", "IN_Time", "IN_SMS_sent");
+		sprintf(sql, "create table if not exists Student_Details(%s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT);", "Roll_No", "Name", "ID_Number", "IN_Time", "OUT_Time");
 	}
 	else if(state == "write")
 	{
-		sprintf(sql, "INSERT INTO Student_Details VALUES('%s', '%s', '%s', '%s', '%s');", Roll_No, Name, ID_Number, IN_Time, IN_SMS_sent);
+		sprintf(sql, "INSERT INTO Student_Details VALUES('%s', '%s', '%s', '%s', '%s');", Roll_No, Name, ID_Number, IN_Time, OUT_Time);
 	}
 	else if(state == "update")
 	{
-		sprintf(sql, "UPDATE Student_Details SET IN_Time = '%s', IN_SMS_sent = '%s' WHERE ID_Number = '%s';", IN_Time, IN_SMS_sent, ID_Number);
-	}
-
-	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
-
-	if (rc != SQLITE_OK ) {
-
-		fprintf(stderr, "SQL error: %s\n", err_msg);
-
-		sqlite3_free(err_msg);        
-		sqlite3_close(db);
-
-		return 1;
-	} 
-
-	sqlite3_close(db);
-
-	return 0;
-}
-
-int check_db_OUT(char *Roll_No,char *Name, char *ID_Number, char *OUT_Time, char *OUT_SMS_sent, char *state)
-{
-	sqlite3 *db;
-	char *err_msg = 0;
-	sqlite3_stmt *res;
-
-	int rc = sqlite3_open(DB_PATH, &db);
-
-	if (rc) {
-		fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
-		return 0;
-	}
-
-	char sql[1000];
-
-	if(state == "init")
-	{
-		sprintf(sql, "create table if not exists Student_Details(%s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT);", "Roll_No", "Name", "ID_Number", "OUT_Time", "OUT_SMS_sent");
-	}
-	else if(state == "write")
-	{
-		sprintf(sql, "INSERT INTO Student_Details VALUES('%s', '%s', '%s', '%s', '%s');", Roll_No, Name, ID_Number, OUT_Time, OUT_SMS_sent);
-	}
-	else if(state == "update")
-	{
-		sprintf(sql, "UPDATE Student_Details SET OUT_Time = '%s', OUT_SMS_sent = '%s' WHERE ID_Number = '%s';", OUT_Time, OUT_SMS_sent, ID_Number);
+		sprintf(sql, "UPDATE Student_Details SET IN_Time = '%s', OUT_Time = '%s' WHERE ID_Number = '%s';", IN_Time, OUT_Time, ID_Number);
 	}
 
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
@@ -173,29 +128,19 @@ int check_db_OUT(char *Roll_No,char *Name, char *ID_Number, char *OUT_Time, char
 int csv_db()
 {
 int i = 0;
-if(section==1)
-{
 for(i=0;i<student_count;i++)
-check_db_IN(Student[i].Roll_No,Student[i].Name,Student[i].ID_Number,Student[i].IN_Time,Student[i].IN_SMS_sent,"write");
-}
-else if(section==2)
-{
-for(i=0;i<student_count;i++)
-check_db_OUT(Student[i].Roll_No,Student[i].Name,Student[i].ID_Number,Student[i].OUT_Time,Student[i].OUT_SMS_sent,"write");
+check_db(Student[i].Roll_No,Student[i].Name,Student[i].ID_Number,Student[i].IN_Time,Student[i].OUT_Time,"write");
 }
 }
 
 int db_init()
 {
-	if(section == 1)
-		return check_db_IN("Roll_No", "Name", "ID_Number", "IN_Time", "SMS_status", "init");
-	else if(section == 2)
-		return check_db_OUT("Roll_No", "Name", "ID_Number", "OUT_Time", "SMS_status", "init");
+		return check_db_IN("Roll_No", "Name", "ID_Number", "IN_Time", "OUT_Time", "init");
 }
 
 int presence(char *ID_Number)
 {
-    int channel_1, channel_2, channel_3, channel_4, channel_5, channel_6, channel_7, channel_8;
+    int channel_1, channel_2;
     sqlite3 *db;
     char *err_msg = 0;
     sqlite3_stmt *res;
@@ -212,7 +157,7 @@ int presence(char *ID_Number)
         return 1;
     }
 
-	sprintf(sql,"SELECT Channel_1, Channel_2, Channel_3, Channel_4, Channel_5, Channel_6, Channel_7, Channel_8 FROM Student_Details WHERE ID_Number='%s';",ID_Number);
+	sprintf(sql,"SELECT Channel_1, Channel_2 FROM Student_Details WHERE ID_Number='%s';",ID_Number);
 	
     rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);
     
@@ -228,200 +173,18 @@ int presence(char *ID_Number)
 
 	if (step == SQLITE_ROW)
 	{
-		sscanf(sqlite3_column_text(res, 0), "%d", &channel_1);
-		sscanf(sqlite3_column_text(res, 1), "%d", &channel_2);
-		sscanf(sqlite3_column_text(res, 2), "%d", &channel_3);
-		sscanf(sqlite3_column_text(res, 3), "%d", &channel_4);
-		sscanf(sqlite3_column_text(res, 4), "%d", &channel_5);
-		sscanf(sqlite3_column_text(res, 5), "%d", &channel_6);
-		sscanf(sqlite3_column_text(res, 6), "%d", &channel_7);
-		sscanf(sqlite3_column_text(res, 7), "%d", &channel_8);
-//		printf("channel1 - %d\n",channel_1);
-//		printf("channel2 - %d\n",channel_2);
+		printf("channel1 - %d\n",channel_1);
+		printf("channel2 - %d\n",channel_2);
 	}
 	sqlite3_finalize(res);
     sqlite3_close(db);
 
-int i=0;
-int IN_time=0, IN_time_main=0, IN_time_sub=0, IN_time_back=0;
-int OUT_time=0, OUT_time_main=0, OUT_time_sub=0, OUT_time_back=0;
+int i = 0;
 
-// IN & OUT Logic
-if(section == 1)
+for(i=0;i<student_count;i++)
 {
-	for(i=0;i<sizeof(entry_logic_IN);i++)
-	{
-	if(entry_logic_IN[i] == '_')
-	{
-		IN_time_main = IN_time;
-		IN_time = 0;
-//		printf("Receiver _ main - %d\n",IN_time_main);
-	}
-	else if(entry_logic_IN[i] == '\0')
-	{
-		if(IN_time_main == 0)
-		{
-			IN_time_main = IN_time;
-			IN_time = 0;
-//			printf("Receiver Null - main - %d\n",IN_time_main);
-		}
-		else
-		{
-			IN_time_sub = IN_time;
-			IN_time = 0;
-//			printf("Receiver Null - sub - %d\n",IN_time_sub);
-		}
-		break;
-	}
-	else if(entry_logic_IN[i] != '_')
-	{
-//		printf("channel_number - %c\n",entry_logic_IN[i]);
-
-		if(entry_logic_IN[i] == '1')
-			IN_time_back = channel_1;
-		if(entry_logic_IN[i] == '2')
-			IN_time_back = channel_2;
-		if(entry_logic_IN[i] == '3')
-			IN_time_back = channel_3;
-		if(entry_logic_IN[i] == '4')
-			IN_time_back = channel_4;
-		if(entry_logic_IN[i] == '5')
-			IN_time_back = channel_5;
-		if(entry_logic_IN[i] == '6')
-			IN_time_back = channel_6;
-		if(entry_logic_IN[i] == '7')
-			IN_time_back = channel_7;
-		if(entry_logic_IN[i] == '8')
-			IN_time_back = channel_8;
-
-		if(IN_time <= IN_time_back)
-		{
-			IN_time = IN_time_back;
-//			printf("IN_time = %d\n",IN_time);
-		}
-	}
-	}
-/*	
-	if(IN_time_sub > IN_time_main)
-	{
-//		printf("===========> IN_time = %d\n",IN_time_sub);
-		return IN_time_sub;
-	}
-	else if(IN_time_sub == 0 && IN_time_main != 0)
-	{
-		if(number_of_channel == 1)
-		{
-//			printf("===========> IN_time = %d\n",IN_time_main);
-			return IN_time_main;
-		}
-		else
-		{
-			IN_time_main = 0;
-//			printf("===========> IN_time = %d\n",IN_time_main);
-			return IN_time_main;
-		}
-	}
-	else
-	{
-		return 0;
-	}
-*/
-
-if(IN_time_main > IN_time_sub)
-	return IN_time_main;
-else if(IN_time_sub > IN_time_main)
-	return IN_time_sub;
-
-}
-else if(section == 2)
-{
-	for(i=0;i<sizeof(entry_logic_OUT);i++)
-	{
-	if(entry_logic_OUT[i] == '_')
-	{
-		OUT_time_main = OUT_time;
-		OUT_time = 0;
-//		printf("Receiver _ main - %d\n",OUT_time_main);
-	}
-	else if(entry_logic_OUT[i] == '\0')
-	{
-		if(OUT_time_main == 0)
-		{
-			OUT_time_main = OUT_time;
-			OUT_time = 0;
-//			printf("Receiver Null - main - %d\n",OUT_time_main);
-		}
-		else
-		{
-			OUT_time_sub = OUT_time;
-			OUT_time = 0;
-//			printf("Receiver Null - sub - %d\n",OUT_time_sub);
-		}
-		break;
-	}
-	else if(entry_logic_OUT[i] != '_')
-	{
-//		printf("channel_number - %c\n",entry_logic_OUT[i]);
-
-		if(entry_logic_OUT[i] == '1')
-			OUT_time_back = channel_1;
-		if(entry_logic_OUT[i] == '2')
-			OUT_time_back = channel_2;
-		if(entry_logic_OUT[i] == '3')
-			OUT_time_back = channel_3;
-		if(entry_logic_OUT[i] == '4')
-			OUT_time_back = channel_4;
-		if(entry_logic_OUT[i] == '5')
-			OUT_time_back = channel_5;
-		if(entry_logic_OUT[i] == '6')
-			OUT_time_back = channel_6;
-		if(entry_logic_OUT[i] == '7')
-			OUT_time_back = channel_7;
-		if(entry_logic_OUT[i] == '8')
-			OUT_time_back = channel_8;
-
-		if(OUT_time <= OUT_time_back)
-		{
-			OUT_time = OUT_time_back;
-//			printf("OUT_time = %d\n",OUT_time);
-		}
-		else
-		{
-//			printf("lesser value - omitted\n");
-		}
-	}
-	}
-/*	
-	if(OUT_time_sub > OUT_time_main)
-	{
-//		printf("===========> OUT_time = %d\n",OUT_time_sub);
-		return OUT_time_sub;
-	}
-	else if(OUT_time_sub == 0 && OUT_time_main != 0)
-	{
-		if(number_of_channel == 1)
-		{
-//			printf("===========> OUT_time = %d\n",OUT_time_main);
-			return OUT_time_main;
-		}
-		else
-		{
-			OUT_time_main = 0;
-//			printf("===========> OUT_time = %d\n",OUT_time_main);
-			return OUT_time_main;
-		}
-	}
-	else
-	{
-		return 0;
-	}
-*/
-
-if(OUT_time_main > OUT_time_sub)
-	return OUT_time_main;
-else if(OUT_time_sub > OUT_time_main)
-	return OUT_time_sub;
-
+	if(strcmp(Student[i].ID_Number,ID_Number))
+check_db(Student[i].Roll_No,Student[i].Name,Student[i].ID_Number,Student[i].IN_Time,Student[i].OUT_Time,"write");
 }
 }
 

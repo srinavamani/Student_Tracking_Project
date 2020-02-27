@@ -10,39 +10,10 @@
 #include <sqlite3.h>
 #include "read.h"
 
-#define MORNING "morning"
-#define AFTERNOON "afternoon"
-
 int callback(void *NotUsed, int argc, char **argv, char **azColName);
 
 int main(int argc, char *argv[])
 {
-printf("argc = %d\n",argc);
-
-if(argc==5)
-{
-if(strcmp(argv[1],MORNING)==0)
-	section=1;
-else if(strcmp(argv[1],AFTERNOON)==0)
-	section=2;
-else
-{
-	printf("Wrong Arguments\n");
-	return 0;
-}
-
-printf("section - %d\n",section);
-
-sscanf(argv[2], "%d", &number_of_channel);
-printf("Number of channel = %d\n",number_of_channel);
-
-//IN Logic
-strcpy(entry_logic_IN,argv[3]);
-printf("IN Logic = %s\n",entry_logic_IN);
-
-//OUT Logic
-strcpy(entry_logic_OUT,argv[4]);
-printf("OUT Logic = %s\n",entry_logic_OUT);
 
 // Coding starts from here,
 system("rm /home/root/ID.db");

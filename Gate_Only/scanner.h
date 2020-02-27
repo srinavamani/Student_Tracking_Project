@@ -12,7 +12,7 @@
 #define MODEMDEVICE				"/dev/ttyUSB0"
 
 int callback(void *NotUsed, int argc, char **argv, char **azColName);
-int db_update(char *ID_Number, char *timestamp, char *channel_number);
+int db_update(char *ID_Number, char *IN_Time, char *OUT_Time);
 
 typedef struct {
 	int iModemFd;
@@ -29,14 +29,8 @@ struct Student_details
     char ID_Number[25];
     char Phone_Number_1[12];
     char Phone_Number_2[12];
-    char channel_1[5];
-    char channel_2[5];
-    char channel_3[5];
-    char channel_4[5];
-    char channel_5[5];
-    char channel_6[5];    
-    char channel_7[5];
-    char channel_8[5];
+    char IN_Time[10];
+    char OUT_Time[10];
 }; 
 
 struct Student_details Student[10000];
@@ -82,14 +76,8 @@ strcpy(Student[student_count].Phone_Number_1,data);
 else if(z==10)
 {
 strcpy(Student[student_count].Phone_Number_2,data);
-strcpy(Student[student_count].channel_1,"0");
-strcpy(Student[student_count].channel_2,"0");
-strcpy(Student[student_count].channel_3,"0");
-strcpy(Student[student_count].channel_4,"0");
-strcpy(Student[student_count].channel_5,"0");
-strcpy(Student[student_count].channel_6,"0");
-strcpy(Student[student_count].channel_7,"0");
-strcpy(Student[student_count].channel_8,"0");
+strcpy(Student[student_count].IN_Time,"\0");
+strcpy(Student[student_count].OUT_Time,"\0");
 z=5;
 student_count++;
 }
@@ -105,53 +93,32 @@ int structure_update(char ID_Number[25], char timestamp[25], int channel_number)
 {
 int i = 0;
 char channel[8];
-for(i=0;i<=student_count;i++)
-{
-
-if(strcmp(Student[i].ID_Number,ID_Number) == 0)
-{
-if(channel_number == 1 && strcmp(Student[i].channel_1,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_1");
-	strcpy(Student[i].channel_1,timestamp);
-}
-else if(channel_number == 2 && strcmp(Student[i].channel_2,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_2");
-	strcpy(Student[i].channel_2,timestamp);
-}
-else if(channel_number == 3 && strcmp(Student[i].channel_3,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_3");
-	strcpy(Student[i].channel_3,timestamp);
-}
-else if(channel_number == 4 && strcmp(Student[i].channel_4,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_4");
-	strcpy(Student[i].channel_4,timestamp);
-}
-else if(channel_number == 5 && strcmp(Student[i].channel_5,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_5");
-	strcpy(Student[i].channel_5,timestamp);
-}
-else if(channel_number == 6 && strcmp(Student[i].channel_6,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_6");
-	strcpy(Student[i].channel_6,timestamp);
-}
-else if(channel_number == 7 && strcmp(Student[i].channel_7,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_7");
-	strcpy(Student[i].channel_7,timestamp);
-}
-else if(channel_number == 8 && strcmp(Student[i].channel_8,"0") == 0)
-{
-	db_update(ID_Number, timestamp, "Channel_8");
-	strcpy(Student[i].channel_8,timestamp);
-}
-}
-}
+	for(i=0;i<=student_count;i++)
+	{
+		if(strcmp(Student[i].ID_Number,ID_Number) == 0)
+		{
+			if(channel_number == 1 && strcmp(Student[i].IN_Time,"\0") == 0)
+			{
+				strcpy(Student[i].IN_Time,timestamp);
+//				printf("IN_Time - %s	OUT_Time - %s\n",Student[i].IN_Time, Student[i].OUT_Time);
+				db_update(ID_Number, Student[i].IN_Time, Student[i].OUT_Time);
+//				printf("ID - %s		timestamp - %s		channel - %d\n",ID_Number, timestamp, channel_number);
+				system("echo 1 > /sys/class/gpio/gpio21/value");
+				sleep(1);
+				system("echo 0 > /sys/class/gpio/gpio21/value");
+			}
+			else if(channel_number == 2 && strcmp(Student[i].OUT_Time,"\0") == 0)
+			{
+				strcpy(Student[i].OUT_Time,timestamp);
+//				printf("IN_Time - %s	OUT_Time - %s\n",Student[i].IN_Time, Student[i].OUT_Time);
+				db_update(ID_Number, Student[i].IN_Time, Student[i].OUT_Time);
+//				printf("ID - %s		timestamp - %s		channel - %d\n",ID_Number, timestamp, channel_number);
+				system("echo 1 > /sys/class/gpio/gpio21/value");
+				sleep(1);
+				system("echo 0 > /sys/class/gpio/gpio21/value");
+			}
+		}
+	}
 }
 
 int LSBOF4BIT(unsigned char hex)
@@ -223,7 +190,7 @@ int db_init()
 
 	char sql[1000];
 
-	sprintf(sql, "create table if not exists Student_Details(%s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT);", "ID_Number", "Channel_1", "Channel_2", "Channel_3", "Channel_4", "Channel_5", "Channel_6", "Channel_7", "Channel_8");
+	sprintf(sql, "create table if not exists Student_Details(%s TEXT, %s TEXT, %s TEXT, %s TEXT, %s TEXT);", "Roll_No", "Name", "ID_Number", "IN_Time", "OUT_Time");
 
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
 
@@ -242,7 +209,7 @@ int db_init()
 	return 0;
 }
 
-int db_write(char *ID_Number, char *channel_1, char *channel_2, char *channel_3, char *channel_4, char *channel_5, char *channel_6, char *channel_7, char *channel_8)
+int db_write(char *Roll_No, char *Name, char *ID_Number, char *IN_Time, char *OUT_Time)
 {
 	sqlite3 *db;
 	char *err_msg = 0;
@@ -257,7 +224,7 @@ int db_write(char *ID_Number, char *channel_1, char *channel_2, char *channel_3,
 
 	char sql[1000];
 
-	sprintf(sql, "INSERT INTO Student_Details('ID_Number','Channel_1','Channel_2','Channel_3','Channel_4','Channel_5','Channel_6','Channel_7','Channel_8') VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s');", ID_Number, channel_1, channel_2, channel_3, channel_4, channel_5, channel_6, channel_7, channel_8);
+	sprintf(sql, "INSERT INTO Student_Details('Roll_No','Name','ID_Number','IN_Time','OUT_Time') VALUES('%s','%s','%s','%s','%s');", Roll_No, Name, ID_Number, IN_Time, OUT_Time);
 
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
 
@@ -280,12 +247,12 @@ int csv_to_main_db()
 {
 int i = 0;
 for(i=0;i<student_count;i++)
-db_write(Student[i].ID_Number, Student[i].channel_1, Student[i].channel_2, Student[i].channel_3, Student[i].channel_4, Student[i].channel_5, Student[i].channel_6, Student[i].channel_7, Student[i].channel_8);
+db_write(Student[i].Roll_No, Student[i].Name, Student[i].ID_Number, Student[i].IN_Time, Student[i].OUT_Time);
 }
 
-int db_update(char *ID_Number, char *timestamp, char *channel)
+int db_update(char *ID_Number, char *IN_Time, char *OUT_Time)
 {
-	printf("channel = %s		%s\n",channel, ID_Number);
+	printf("ID - %s		IN - %s		OUT - %s\n",ID_Number, IN_Time, OUT_Time);
 	sqlite3 *db;
 	char *err_msg = 0;
 	sqlite3_stmt *res;
@@ -299,7 +266,7 @@ int db_update(char *ID_Number, char *timestamp, char *channel)
 
 	char sql[1000];
 
-	sprintf(sql, "UPDATE Student_Details set '%s' = '%s' where ID_Number='%s';", channel, timestamp, ID_Number);
+	sprintf(sql, "UPDATE Student_Details set IN_Time = '%s', OUT_Time = '%s' where ID_Number='%s';", IN_Time, OUT_Time, ID_Number);
 
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
 
